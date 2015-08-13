@@ -25,12 +25,12 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
         android:text="Search"
-        android:onClick="onImageSearch"
+        android:onClick="onClick"
     />
 
     <GridView
         android:id="@+id/gvResults"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentBottom="true"

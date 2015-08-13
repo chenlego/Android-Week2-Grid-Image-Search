@@ -24,6 +24,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 
 import lego.yahoo.com.gridimagesearch.adapters.ImageResultsAdapter;
+import com.yahoo.googleimagesearch.helpers.EndlessScrollListener;
 
 
 public class SearchActivity extends ActionBarActivity  {
@@ -33,6 +34,7 @@ public class SearchActivity extends ActionBarActivity  {
     private ArrayList<ImageResult> imageResults;
     private ImageResultsAdapter aImageResults;
     private String searchUrl = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8";
+    private String parameters = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +46,7 @@ public class SearchActivity extends ActionBarActivity  {
         aImageResults = new ImageResultsAdapter(this, imageResults);
         // link the adapter to the adapterview (gridview)
         gvResults.setAdapter(aImageResults);
+
     }
 
     private void setupViews() {
@@ -62,14 +65,28 @@ public class SearchActivity extends ActionBarActivity  {
                 startActivity(intent);
             }
         });
+
+        gvResults.setOnScrollListener(new EndlessScrollListener() {
+            @Override
+            public void onLoadMore(int page, int totalItemsCount) {
+                onImageSearch((page - 1) * 8);
+            }
+        });
     }
 
-    public void onImageSearch(View v) {
+    public void onClick(View v) {
+        // clear the existing images from the array (in cases where its a new search)
+        imageResults.clear();
+        searchUrl = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&rsz=8";
+        onImageSearch(0);
+    }
+
+    public void onImageSearch( int offset) {
         String query = etQuery.getText().toString();
         Toast.makeText(this, "Search for: " + query, Toast.LENGTH_SHORT).show();
         AsyncHttpClient client = new AsyncHttpClient();
         // https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=android&rsz=8
-            searchUrl += "&q=" + query;
+            searchUrl += parameters + "&start=" + offset + "&q=" + query;
             Log.i("legochen", searchUrl);
             client.get(searchUrl, new JsonHttpResponseHandler() {
             @Override
@@ -77,8 +94,7 @@ public class SearchActivity extends ActionBarActivity  {
                 Log.d("legochen", response.toString());
                 try {
                     JSONArray imageResultsJson = response.getJSONObject("responseData").getJSONArray("results");
-                    // clear the existing images from the array (in cases where its a new search)
-                    imageResults.clear();
+
                     // When you make to the adapter, it does modify the underlying data
                     aImageResults.addAll(ImageResult.fromJSONArray(imageResultsJson));
                     aImageResults.notifyDataSetChanged();
@@ -93,12 +109,17 @@ public class SearchActivity extends ActionBarActivity  {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK && requestCode == 0) {
-            String result = data.toURI();
+            String result = data.getStringExtra("parameters");
             Toast.makeText(this, result, Toast.LENGTH_LONG);
 
             if (data.hasExtra("parameters")) {
-                searchUrl += data.getExtras().getString("parameters");
+                parameters = data.getExtras().getString("parameters");
+                Log.i("legochen", parameters);
+                Log.i("legochen", "onActivityResult 2");
+
             }
+            Log.i("legochen", "onActivityResult");
+
         }
     }
 
@@ -119,7 +140,7 @@ public class SearchActivity extends ActionBarActivity  {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             Intent intent = new Intent(SearchActivity.this, SearchSettingActivity.class);
-            startActivityForResult(intent, RESULT_OK);
+            startActivityForResult(intent, 0);
             return true;
         }
         return super.onOptionsItemSelected(item);
